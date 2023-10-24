@@ -1,18 +1,28 @@
-FROM golang:alpine
+ARG EVILGINX_BIN="/bin/evilginx"
 
-ARG BUILD_RFC3339="1970-01-01T00:00:00Z"
-ARG COMMIT="local"
-ARG VERSION="v3.0.0"
+# Stage 1 - Build EvilGinx2 app
+FROM alpine:latest AS build
 
-ENV GITHUB_USER="therealelyayo"
-ENV EVILGINX_REPOSITORY="github.com/${GITHUB_USER}/cooking"
-ENV INSTALL_PACKAGES="git make gcc musl-dev"
-ENV PROJECT_DIR="${GOPATH}/src/${EVILGINX_REPOSITORY}"
-ENV EVILGINX_BIN="/bin/evilginx"
+LABEL maintainer="froyo75@users.noreply.github.com"
 
-RUN mkdir -p ${GOPATH}/src/github.com/${GITHUB_USER} \
-    && apk add --no-cache ${INSTALL_PACKAGES} \
-    && git -C ${GOPATH}/src/github.com/${GITHUB_USER} clone https://github.com/${GITHUB_USER}/cooking 
+ARG GOLANG_VERSION=1.16
+ARG GOPATH=/opt/go
+ARG GITHUB_USER="kgretzky"
+ARG EVILGINX_REPOSITORY="github.com/${GITHUB_USER}/evilginx2"
+ARG INSTALL_PACKAGES="go git bash"
+ARG PROJECT_DIR="${GOPATH}/src/${EVILGINX_REPOSITORY}"
+ARG EVILGINX_BIN
+
+RUN apk add --no-cache ${INSTALL_PACKAGES}
+
+# Install & Configure Go
+RUN set -ex \
+    && wget https://dl.google.com/go/go${GOLANG_VERSION}.src.tar.gz && tar -C /usr/local -xzf go$GOLANG_VERSION.src.tar.gz \
+    && rm go${GOLANG_VERSION}.src.tar.gz \
+    && cd /usr/local/go/src && ./make.bash \
+# Clone EvilGinx2 Repository
+    && mkdir -pv ${GOPATH}/src/github.com/${GITHUB_USER} \
+    && git -C ${GOPATH}/src/github.com/${GITHUB_USER} clone https://${EVILGINX_REPOSITORY}
 
 # Remove IOCs
 RUN set -ex \
@@ -34,32 +44,29 @@ RUN set -ex \
 RUN set -ex \
     && sed -i 's/10 \* time.Minute/10 \* time.Second/g' ${PROJECT_DIR}/core/http_proxy.go
 
+# Build EvilGinx2
 WORKDIR ${PROJECT_DIR}
 RUN set -x \
     && go get -v && go build -v \
     && cp -v evilginx2 ${EVILGINX_BIN} \
     && mkdir -v /app && cp -vr phishlets /app
 
+# Stage 2 - Build Runtime Container
+FROM alpine:latest
 
-    
-RUN set -ex \
-        && cd ${PROJECT_DIR}/ && go get ./... && make \
-		&& cp ${PROJECT_DIR}/build/evilginx ${EVILGINX_BIN} \
-		&& apk del ${INSTALL_PACKAGES} && rm -rf /var/cache/apk/* && rm -rf ${GOPATH}/src/*
-RUN set -ex \
-        && cd ${PROJECT_DIR}
-COPY ./docker-entrypoint.sh /opt/
-RUN chmod +x /opt/docker-entrypoint.sh
-		
-ENTRYPOINT ["/opt/docker-entrypoint.sh"]
-EXPOSE 53 443
+LABEL maintainer="froyo75@users.noreply.github.com"
 
-STOPSIGNAL SIGKILL
+ENV EVILGINX_PORTS="443 80 53/udp"
+ARG EVILGINX_BIN
 
-# Build-time metadata as defined at http://label-schema.org
-ARG BUILD_DATE
-ARG VCS_REF
-ARG VERSION
+RUN apk add --no-cache bash && mkdir -v /app
 
-LABEL org.label-schema.build-date=$BUILD_DATE \
+# Install EvilGinx2
+WORKDIR /app
+COPY --from=build ${EVILGINX_BIN} ${EVILGINX_BIN}
+COPY --from=build /app .
 
+# Configure Runtime Container
+EXPOSE ${EVILGINX_PORTS}
+
+CMD [${EVILGINX_BIN}, "-p", "/app/phishlets"]
