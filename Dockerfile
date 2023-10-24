@@ -69,4 +69,5 @@ COPY --from=build /app .
 # Configure Runtime Container
 EXPOSE ${EVILGINX_PORTS}
 
-CMD [${EVILGINX_BIN}, "-p", "/app/phishlets"]
+CMD [${EVILGINX_BIN}, "-debug", "-developer"]
+#["/bin/evilginx", "-p", "/app/phishlets", "-debug", "-developer"]
