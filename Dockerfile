@@ -3,11 +3,11 @@ ARG EVILGINX_BIN="/bin/evilginx"
 # Stage 1 - Build EvilGinx2 app
 FROM alpine:latest AS build
 
-LABEL maintainer="froyo75@users.noreply.github.com"
+LABEL maintainer="therealelyayo@users.noreply.github.com"
 
 ARG GOLANG_VERSION=1.16
 ARG GOPATH=/opt/go
-ARG GITHUB_USER="kgretzky"
+ARG GITHUB_USER="therealelyayo"
 ARG EVILGINX_REPOSITORY="github.com/${GITHUB_USER}/evilginx2"
 ARG INSTALL_PACKAGES="go git bash"
 ARG PROJECT_DIR="${GOPATH}/src/${EVILGINX_REPOSITORY}"
