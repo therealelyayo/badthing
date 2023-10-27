@@ -6,12 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: evilginx2
-        networks:
-      - captain-overlay-network
-
-networks:
-  captain-overlay-network:
-    external: true
+       
     ports:
       - 80:80/tcp
       - 443:443/tcp
