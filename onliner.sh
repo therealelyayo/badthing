@@ -15,3 +15,4 @@ sudo make build
 sudo make install
 make
 sudo apache2 service stop 
+sudo systemctl stop systemd-resolved
