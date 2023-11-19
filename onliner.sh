@@ -11,6 +11,7 @@ cd ..
 cd ..
 cd ..
 cd evilginx2
+sudo make build
 sudo make install
 make
 sudo apache2 service stop 
